@@ -2,7 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use App\Contact;
+use GuzzleHttp\Exception\RequestException;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -25,24 +28,42 @@ Route::get('/message', function() {
 
 Route::post('/message', function(Request $request) {
     // TODO: validate incoming params first!
+    $phoneNumbers = Contact::pluck('phones')->toArray(); 
+    foreach ($phoneNumbers as $phoneNumber) { 
+        $response = Http::withBasicAuth('70220a1b','Afq5UuiTrdcG3aHR')
+        ->post('https://messages-sandbox.nexmo.com/v1/messages', [
+            'from' => '14157386102',
+            'to' => $phoneNumber,
+            'message_type' => 'text',
+            'text' => 'This is a WhatsApp Message sent from the Messages API',
+            'channel' => 'whatsapp'
+        ]);
+    }  
+    
+    dd('done');
 
-    $url = "https://messages-sandbox.nexmo.com/v0.1/messages";
-    $params = ["to" => ["type" => "whatsapp", "number" => $request->input('number')],
-        "from" => ["type" => "whatsapp", "number" => "14157386170"],
-        "message" => [
-            "content" => [
-                "type" => "text",
-                "text" => "Hello from Vonage and Laravel :) Please reply to this message with a number between 1 and 100"
-            ]
-        ]
+exit();
+
+    $from = '14157386102';
+    $to = '923275127298';
+    $message_type = 'text';
+    $text = 'This is a WhatsApp Message sent from the Messages API';
+    $channel = 'whatsapp';
+    $headers = [
+        'Authorization' => 'Basic ' . base64_encode(env('NEXMO_API_KEY') . ':' . env('NEXMO_API_SECRET')),
+        'Content-Type' => 'application/json',
+        'Accept' => 'application/json',
     ];
-    $headers = ["Authorization" => "Basic " . base64_encode(env('NEXMO_API_KEY') . ":" . env('NEXMO_API_SECRET'))];
-
-    $client = new \GuzzleHttp\Client();
-    $response = $client->request('POST', $url, ["headers" => $headers, "json" => $params]);
-    $data = $response->getBody();
-    Log::Info($data);
-
+    
+    $response = Http::withBasicAuth(env('NEXMO_API_KEY').','.env('NEXMO_API_SECRET'))->post('https://messages-sandbox.nexmo.com/v1/messages', [
+        'from' => $from,
+        'to' => $to,
+        'message_type' => $message_type,
+        'text' => $text,
+        'channel' => $channel,
+    ]);
+    $json =  json_decode((string) $response->getBody(), true);   
+    dd($json);
     return view('thanks');
 });
 
