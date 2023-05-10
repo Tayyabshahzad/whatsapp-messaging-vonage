@@ -16,17 +16,33 @@ use GuzzleHttp\Exception\RequestException;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/', function(Request $request) {
+    $contacts = Contact::get();
+    return view('welcome',compact('contacts'));
 });
 
-Route::get('/message', function() {
-    // show a form
-    return view('message');
-});
 
-Route::post('/message', function(Request $request) {
+Route::post('upload', function(Request $request) {
+    $request->validate([
+        'file' => 'required|mimes:csv,txt|max:2048'
+    ]); 
+    $file = $request->file('file');
+    $csvData = file_get_contents($file);
+    $rows = array_map('str_getcsv', explode("\n", $csvData));
+    $header = array_shift($rows);
+    Contact::truncate();
+    foreach ($rows as $row) {
+        // Make sure that the number of columns matches the number of headers
+        if (count($header) == count($row)) {
+            $data = array_combine($header, $row); 
+            // Save the data to the database
+            Contact::create($data);
+        }
+    }
+    return back()->with('success', 'File uploaded successfully.');
+})->name('upload');
+
+Route::get('send-messsage', function(Request $request) {
     // TODO: validate incoming params first!
     $phoneNumbers = Contact::pluck('phones')->toArray(); 
     foreach ($phoneNumbers as $phoneNumber) { 
@@ -38,33 +54,9 @@ Route::post('/message', function(Request $request) {
             'text' => 'This is a WhatsApp Message sent from the Messages API',
             'channel' => 'whatsapp'
         ]);
-    }  
-    
-    dd('done');
-
-exit();
-
-    $from = '14157386102';
-    $to = '923275127298';
-    $message_type = 'text';
-    $text = 'This is a WhatsApp Message sent from the Messages API';
-    $channel = 'whatsapp';
-    $headers = [
-        'Authorization' => 'Basic ' . base64_encode(env('NEXMO_API_KEY') . ':' . env('NEXMO_API_SECRET')),
-        'Content-Type' => 'application/json',
-        'Accept' => 'application/json',
-    ];
-    
-    $response = Http::withBasicAuth(env('NEXMO_API_KEY').','.env('NEXMO_API_SECRET'))->post('https://messages-sandbox.nexmo.com/v1/messages', [
-        'from' => $from,
-        'to' => $to,
-        'message_type' => $message_type,
-        'text' => $text,
-        'channel' => $channel,
-    ]);
-    $json =  json_decode((string) $response->getBody(), true);   
-    dd($json);
-    return view('thanks');
+    } 
+    return back()->with('success', 'Message Send.');
+ 
 });
 
 Route::post('/webhooks/status', function(Request $request) {

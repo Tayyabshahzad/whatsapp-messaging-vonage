@@ -80,9 +80,29 @@
             @endif
 
             <div class="content">
-                <div class="title m-b-md">
-                    Laravel
-                </div>
+                <form action="{{ route('upload') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="form-group">
+                        <label for="file">Choose a file Only CSV:</label>
+                        <input type="file" name="file" class="form-control" accept=".csv,.txt">
+                        @error('file')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <br/>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                
+                </form>
+
+                <br/>
+                <a href="send-messsage" class="btn btn-sm btn-info"> Send Whats App Message </a>
+
+                <hr>
+                <ul>
+                    @foreach ($contacts as $contact)
+                            <li> {{  $contact->phones }} </li>
+                    @endforeach
+                </ul>
 
             </div>
         </div>
